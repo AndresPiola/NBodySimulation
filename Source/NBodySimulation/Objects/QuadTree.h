@@ -64,16 +64,4 @@ public:
 
 	UPROPERTY()
 	FVector2D CenterMass;
-
-	UPROPERTY()
-	UQuadTree* TopLeft;
-
-	UPROPERTY()
-	UQuadTree* TopRight;
-
-	UPROPERTY()
-	UQuadTree* BottomLeft;
-
-	UPROPERTY()
-	UQuadTree* BottomRight;
 };

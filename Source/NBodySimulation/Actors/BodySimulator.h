@@ -40,7 +40,6 @@ public:
 	virtual void SimulateNaiveMode(float DeltaTime);
 
 	virtual void ConstructTree();
-	virtual void DepthFirstSearch(UQuadTree* Node);
 	virtual void SimulateBarnesHut();
 	virtual void CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree* Node);
 
@@ -73,8 +72,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "NBody Simulation Parameters")
 	float BaseInitialSpeed = 500.0f;
 
-	UPROPERTY(EditAnywhere, meta=(UIMin=0, UIMax=1.0f), Category = "NBody Simulation Parameters")
-	float Theta = 0.3f;
+	UPROPERTY(EditAnywhere, meta=(UIMin=0, UIMax=1.5f), Category = "NBody Simulation Parameters")
+	float Theta = 0.7f;
 
 
 	UPROPERTY(EditAnywhere, Category = "NBody Simulation Parameters")

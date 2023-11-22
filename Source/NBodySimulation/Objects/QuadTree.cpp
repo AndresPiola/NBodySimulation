@@ -7,25 +7,21 @@
 #include "BodyEntity.h"
 #include "NBodySimulation/Utils/BodySimulatorFunctionLibrary.h"
 
-UQuadTree::UQuadTree(): bIsSubdivided(false), TopLeft(nullptr), TopRight(nullptr), BottomLeft(nullptr), BottomRight(nullptr) {}
-
+UQuadTree::UQuadTree(): bIsSubdivided(false), BodyEntity(nullptr) {}
 
 void UQuadTree::SubDivide()
 {
+	Children.Reserve(4);
 	UE::Math::TVector2<double> Center = Box.GetCenter();
 	const UE::Math::TVector2<double> Size = Box.GetExtent();
-	this->TopLeft = NewObject<UQuadTree>(this);
-	this->TopLeft->Initialize(FBox2D({Center.X, Center.Y - Size.Y}, {Center.X + Size.X, Center.Y}));
-	this->TopRight = NewObject<UQuadTree>(this);
-	this->TopRight->Initialize(FBox2D({Center.X, Center.Y}, {Center.X + Size.X, Center.Y + Size.Y}));
-	this->BottomLeft = NewObject<UQuadTree>(this);
-	this->BottomLeft->Initialize(FBox2D({Center.X - Size.X, Center.Y - Size.Y}, {Center.X, Center.Y}));
-	this->BottomRight = NewObject<UQuadTree>(this);
-	this->BottomRight->Initialize(FBox2D({Center.X - Size.X, Center.Y}, {Center.X, Center.Y + Size.Y}));
-	Children.Add(this->TopLeft);
-	Children.Add(this->TopRight);
-	Children.Add(this->BottomLeft);
-	Children.Add(this->BottomRight);
+	Children.Insert(NewObject<UQuadTree>(this), 0);
+	Children[0]->Initialize(FBox2D({Center.X, Center.Y - Size.Y}, {Center.X + Size.X, Center.Y}));
+	Children.Insert(NewObject<UQuadTree>(this), 1);
+	Children[1]->Initialize(FBox2D({Center.X, Center.Y}, {Center.X + Size.X, Center.Y + Size.Y}));
+	Children.Insert(NewObject<UQuadTree>(this), 2);
+	Children[2]->Initialize(FBox2D({Center.X - Size.X, Center.Y - Size.Y}, {Center.X, Center.Y}));
+	Children.Insert(NewObject<UQuadTree>(this), 3);
+	Children[3]->Initialize(FBox2D({Center.X - Size.X, Center.Y}, {Center.X, Center.Y + Size.Y}));
 }
 
 void UQuadTree::Initialize(const FBox2D& InBox)
@@ -57,16 +53,37 @@ bool UQuadTree::Insert(UBodyEntity* Entity)
 		bIsSubdivided = true;
 		SubDivide();
 		//UE_LOG(LogTemp, Log, TEXT(" Node %s is subdivided"), *GetName());
-
-		TopLeft->Insert(BodyEntity);
-		TopRight->Insert(BodyEntity);
-		BottomLeft->Insert(BodyEntity);
-		BottomRight->Insert(BodyEntity);
+		for (UQuadTree* Child : Children)
+		{
+			if (Child->Insert(BodyEntity))
+			{
+				break;
+			}
+		}
 	}
-	const bool bInserted = TopLeft->Insert(Entity) ||
-		TopRight->Insert(Entity) ||
-		BottomLeft->Insert(Entity) ||
-		BottomRight->Insert(Entity);
+	const bool bInserted = Children[0]->Insert(Entity) ||
+		Children[1]->Insert(Entity) ||
+		Children[2]->Insert(Entity) ||
+		Children[3]->Insert(Entity);
+	float TempMass = 0;
+	float CenterX = 0;
+	float CenterY = 0;
+	int Size = 0;
+
+	for (const UQuadTree* Child : Children)
+	{
+		if (!Child->BodyEntity)
+		{
+			continue;
+		}
+		Size++;
+		TempMass += Child->Mass;
+		CenterX += Child->CenterMass.X;
+		CenterY += Child->CenterMass.Y;
+	}
+	Mass = TempMass;
+	CenterMass.X = CenterX / Size;
+	CenterMass.Y = CenterY / Size;
 
 	return bInserted;
 }
@@ -82,13 +99,16 @@ FVector2D UQuadTree::GetCenterOfMass()
 
 bool UQuadTree::IsLeaf()
 {
-	return TopLeft == nullptr && TopRight == nullptr && BottomLeft == nullptr && BottomRight == nullptr;
+	if (Children.Num() == 0)
+	{
+		return true;
+	}
+	return Children[0] == nullptr && Children[1] == nullptr && Children[2] == nullptr && Children[3] == nullptr;
 }
 
 bool UQuadTree::IsEmpty()
 {
 	return bIsEmpty;
-	return BodyEntity == nullptr;
 }
 
 void UQuadTree::Show()
@@ -113,7 +133,6 @@ void UQuadTree::Show()
 		DrawDebugSphere(GetWorld(), CenterMass3D, 22, 11, FColor::Orange);
 		UE_LOG(LogTemp, Log, TEXT("Node %s mass: %f CenterMass:%s"), *GetName(), Mass, *CenterMass.ToString());
 		DrawDebugLine(GetWorld(), QuadCenter, CenterMass3D, FColor::Orange);
-
 	}
 
 	if (Children.Num() > 0 || IsLeaf())
@@ -126,9 +145,12 @@ void UQuadTree::Show()
 
 	if (bIsSubdivided)
 	{
-		TopLeft->Show();
-		TopRight->Show();
-		BottomLeft->Show();
-		BottomRight->Show();
+		for (UQuadTree* Child : Children)
+		{
+			if (Child)
+			{
+				Child->Show();
+			}
+		}
 	}
 }

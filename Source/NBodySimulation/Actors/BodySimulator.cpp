@@ -174,7 +174,7 @@ void ABodySimulator::Tick(float DeltaTime)
 		break;
 	case ESimulationType::BarnesHut:
 		ConstructTree();
-		DepthFirstSearch(QuadTree);
+	//DepthFirstSearch(QuadTree);
 		if (bShowDebugGrid && QuadTree)
 		{
 			UKismetSystemLibrary::FlushDebugStrings(GetWorld());
@@ -203,47 +203,6 @@ void ABodySimulator::ConstructTree()
 	}
 }
 
-
-void ABodySimulator::DepthFirstSearch(UQuadTree* Node)
-{
-	if (Node == nullptr)
-	{
-		return;
-	}
-
-	DepthFirstSearch(Node->TopLeft);
-	DepthFirstSearch(Node->TopRight);
-	DepthFirstSearch(Node->BottomLeft);
-	DepthFirstSearch(Node->BottomRight);
-
-	if (Node->IsLeaf() && !Node->IsEmpty())
-	{
-		Node->Mass = Node->BodyEntity->Mass;
-		Node->CenterMass = Node->BodyEntity->Position;
-	}
-	else if (Node->Children.Num() > 0)
-	{
-		float TempMass = 0;
-		float CenterX = 0;
-		float CenterY = 0;
-		int Size = 0;
-		for (const UQuadTree* Child : Node->Children)
-		{
-			if (!Child->BodyEntity)
-			{
-				continue;
-			}
-			Size++;
-			TempMass += Child->Mass;
-			CenterX += Child->CenterMass.X;
-			CenterY += Child->CenterMass.Y;
-		}
-		Node->Mass = TempMass;
-		Node->CenterMass.X = CenterX / Size;
-		Node->CenterMass.Y = CenterY / Size;
-	}
-}
-
 void ABodySimulator::SimulateBarnesHut()
 {
 	ParallelFor(Bodies.Num(), [&](const int32 Index)
@@ -269,9 +228,14 @@ void ABodySimulator::CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree
 	}
 	FVector2D Center, Extents;
 	Node->Box.GetCenterAndExtents(Center, Extents);
-	const float TestValue = Extents.Size() / FVector2D::Distance(Center, BodyEntity->Position);
-	if (TestValue < Theta)
+	const float s = Extents.GetMax();
+	const float d = FVector2D::Distance(Node->CenterMass, BodyEntity->Position);
+
+	const float Quotient = s / d;
+	//UE_LOG(LogTemp,Log,TEXT("s/d %f/%f=%f < %f θ "),s,d,Quotient,Theta);
+	if (Quotient < Theta)
 	{
+		//UE_LOG(LogTemp, Log, TEXT("Skipped because TestValue< theta"));
 		BodyEntity->TryToApplyExternalForce(Node->CenterMass, Node->Mass, this);
 		return;
 	}
