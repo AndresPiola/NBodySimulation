@@ -31,20 +31,16 @@ void UQuadTree::Initialize(const FBox2D& InBox)
 
 bool UQuadTree::Insert(UBodyEntity* Entity)
 {
-	//	UE_LOG(LogTemp, Log, TEXT("Trying to insert Body id %d  "), Entity->Index);
 	if (!Box.IsInside(Entity->Position))
 	{
-		//		UE_LOG(LogTemp, Log, TEXT(" Body id %d not in cuadrant "), Entity->Index);
 		return false;
 	}
 	if (IsEmpty() && Children.Num() == 0)
 	{
 		BodyEntity = Entity;
-
 		Mass = BodyEntity->Mass;
 		CenterMass = BodyEntity->Position;
 		bIsEmpty = false;
-		//	UE_LOG(LogTemp, Log, TEXT("Leaf Node %s mass: %f CenterMass:%s"), *GetName(), Mass, *CenterMass.ToString());
 		return true;
 	}
 

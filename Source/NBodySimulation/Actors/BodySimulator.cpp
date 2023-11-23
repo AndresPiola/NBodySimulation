@@ -34,17 +34,18 @@ ABodySimulator::ABodySimulator()
 
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
 	SceneBounds = FBox2D({0, 0}, {3296, 5000});
+	SetActorTickEnabled(false);
 }
 
 void ABodySimulator::BeginPlay()
 {
 	Super::BeginPlay();
-	if (GEngine && GEngine->GameViewport)
-	{
-		GEngine->GameViewport->Viewport->ViewportResizedEvent.AddUObject(this, &ThisClass::OnViewportResized);
-	}
 
-	InitBodies();
+	FTimerHandle TimerHandle;
+	FTimerDelegate TimerDelegate;
+	TimerDelegate.BindUObject(this, &ThisClass::InitBodies);
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, TimerDelegate, 1.0f, false);
+	//	InitBodies();
 }
 
 void ABodySimulator::GetCameraValues()
@@ -93,6 +94,7 @@ void ABodySimulator::InitBodies()
 		Bodies[Index]->Initialize(RandomPosition, FVector2D(RandomVelocity.X, RandomVelocity.Y), Mass, Index);
 	}
 	InstancedMesh->AddInstances(Transforms, false, true);
+	SetActorTickEnabled(true);
 }
 
 
@@ -164,23 +166,25 @@ void ABodySimulator::Tick(float DeltaTime)
 		DeltaTime = MAX_TICK;
 	}
 	Super::Tick(DeltaTime);
-	UpdatePositionStep(DeltaTime);
+
 	switch (SimulationType)
 	{
 	case ESimulationType::None:
 		break;
 	case ESimulationType::Naive:
 		SimulateNaiveMode(DeltaTime);
+		UpdatePositionStep(DeltaTime);
 		break;
 	case ESimulationType::BarnesHut:
+
 		ConstructTree();
-	//DepthFirstSearch(QuadTree);
 		if (bShowDebugGrid && QuadTree)
 		{
 			UKismetSystemLibrary::FlushDebugStrings(GetWorld());
 			UKismetSystemLibrary::FlushPersistentDebugLines(GetWorld());
 			QuadTree->Show();
 		}
+
 		SimulateBarnesHut();
 		break;
 	default: ;
@@ -197,6 +201,7 @@ void ABodySimulator::ConstructTree()
 {
 	QuadTree = NewObject<UQuadTree>(this);
 	QuadTree->Box = SceneBounds;
+
 	for (UBodyEntity* Body : Bodies)
 	{
 		QuadTree->Insert(Body);
@@ -208,7 +213,13 @@ void ABodySimulator::SimulateBarnesHut()
 	ParallelFor(Bodies.Num(), [&](const int32 Index)
 	{
 		CalculateForcesBarnesHut(Bodies[Index], QuadTree);
+
+		AdjustPosition(Bodies[Index]->Position);
+		Bodies[Index]->Position += Bodies[Index]->Velocity * GetWorld()->GetDeltaSeconds();
+
+		Transforms[Bodies[Index]->Index].SetTranslation(Bodies[Index]->Get3DPosition());
 	});
+	InstancedMesh->BatchUpdateInstancesTransforms(0, Transforms, true, true);
 }
 
 void ABodySimulator::CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree* Node)
