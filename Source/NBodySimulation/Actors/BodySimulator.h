@@ -43,10 +43,8 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-
-public:
 	virtual void Tick(float DeltaTime) override;
-	// - COMPONENTS
+
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Instanced, NoClear)
 	UInstancedStaticMeshComponent* InstancedMesh;
@@ -74,25 +72,31 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "NBody Simulation")
 	float BodyDisplayScale = 0.02f;
+
 	UPROPERTY(EditAnywhere, Category = "NBody Simulation")
 	float G = 1000.0f;
+
 	UPROPERTY(EditAnywhere, Category = "NBody Simulation")
 	float MinMass = 20.0f;
+
 	UPROPERTY(EditAnywhere, Category = "NBody Simulation")
 	float MaxMass = 100.0f;
+
 	UPROPERTY(EditAnywhere, Category = "NBody Simulation")
-	float MinimumGravityDistance = 100.0f; // prevents division by zero and forces too high
+	float MinimumGravityDistance = 100.0f;
 
 	UPROPERTY(BlueprintReadOnly)
 	FBox2D SceneBounds;
 
-	UQuadTree* QuadTree;
-
 private:
 	UPROPERTY()
 	bool bCameraViewportReady;
+
 	UPROPERTY()
 	TArray<UBodyEntity*> Bodies;
+
 	UPROPERTY()
 	TArray<FTransform> Transforms;
+
+	UQuadTree* QuadTree;
 };
