@@ -30,23 +30,20 @@ public:
 	// Sets default values for this actor's properties
 	ABodySimulator();
 
-	UFUNCTION(BlueprintCallable)
-	virtual void GetCameraValues();
+
 	virtual void InitBodies();
-	virtual void GravityStep(float DeltaTime);
 
 	virtual void AdjustPosition(FVector2D& InPosition) const;
 
-	virtual void SimulateCompareAllParallel(float DeltaTime);
-	virtual void SimulateNaiveMode(float DeltaTime);
+	virtual void MoveAllBodies(float DeltaTime);
 
+	virtual void SimulateCompareAllParallel(float DeltaTime);
 	virtual void ForceDestroy(UQuadTree* QuadTreeToDelete);
 	virtual void ConstructTree();
 	virtual void SimulateBarnesHut();
 	virtual void CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree* Node);
 
 protected:
-	virtual void OnViewportResized(FViewport* Viewport, unsigned I);
 	virtual void BeginPlay() override;
 
 public:

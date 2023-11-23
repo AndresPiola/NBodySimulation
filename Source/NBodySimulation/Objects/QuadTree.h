@@ -24,7 +24,7 @@ class NBODYSIMULATION_API UQuadTree : public UObject
 
 public:
 	virtual void Initialize(const FBox2D& InBox);
-	virtual bool Insert(UBodyEntity* Entity);
+	virtual void Insert(UBodyEntity* Entity);
 	virtual void Show();
 	virtual FVector2D GetCenterOfMass();
 	virtual bool IsLeaf();

@@ -48,26 +48,6 @@ void ABodySimulator::BeginPlay()
 	InitBodies();
 }
 
-void ABodySimulator::GetCameraValues()
-{
-	const APlayerController* PlayerController = Cast<APlayerController>(GetController());
-	FVector WorldDir;
-	FVector WorldPosition;
-	FVector2D ViewportSize = FVector2D(1, 1);
-
-	GEngine->GameViewport->GetViewportSize(/*out*/ViewportSize);
-
-	UGameplayStatics::DeprojectScreenToWorld(PlayerController, FVector2D(), WorldPosition, WorldDir);
-	WorldPosition += WorldDir * CameraArm->TargetArmLength;
-
-	BottomLeftBounds = FVector2D(WorldPosition.X, WorldPosition.Y);
-	UGameplayStatics::DeprojectScreenToWorld(PlayerController, ViewportSize, WorldPosition, WorldDir);
-	WorldPosition += WorldDir * CameraArm->TargetArmLength;
-	//BottomRightBounds = FVector2D(WorldPosition.X, WorldPosition.Y);
-	bCameraViewportReady = true;
-	//SceneBounds = FBox2D({BottomRightBounds.X, TopLeftBounds.Y}, {TopLeftBounds.X, BottomRightBounds.Y});
-}
-
 
 // Called when the game starts or when spawned
 void ABodySimulator::InitBodies()
@@ -98,7 +78,7 @@ void ABodySimulator::InitBodies()
 }
 
 
-void ABodySimulator::GravityStep(const float DeltaTime)
+void ABodySimulator::SimulateCompareAllParallel(const float DeltaTime)
 {
 	ParallelFor(Bodies.Num(), [&](const int32 Index)
 	{
@@ -119,7 +99,7 @@ void ABodySimulator::GravityStep(const float DeltaTime)
 }
 
 
-void ABodySimulator::SimulateCompareAllParallel(const float DeltaTime)
+void ABodySimulator::MoveAllBodies(const float DeltaTime)
 {
 	for (UBodyEntity* Body : Bodies)
 	{
@@ -167,30 +147,25 @@ void ABodySimulator::Tick(float DeltaTime)
 	case ESimulationType::None:
 		break;
 	case ESimulationType::AllVsAll:
-		SimulateNaiveMode(DeltaTime);
 		SimulateCompareAllParallel(DeltaTime);
+		MoveAllBodies(DeltaTime);
 		break;
 	case ESimulationType::BarnesHut:
-
+		double startSeconds = FPlatformTime::Seconds();
 		ConstructTree();
-		if (bShowDebugGrid && QuadTree)
-		{
-			UKismetSystemLibrary::FlushDebugStrings(GetWorld());
-			UKismetSystemLibrary::FlushPersistentDebugLines(GetWorld());
-			QuadTree->Show();
-		}
-
+		double secondsElapsed = FPlatformTime::Seconds() - startSeconds;
+		UE_LOG(LogTemp, Warning, TEXT("ConstructTree time : %f seconds"), secondsElapsed);
+		startSeconds = FPlatformTime::Seconds();
 		SimulateBarnesHut();
+		secondsElapsed = FPlatformTime::Seconds() - startSeconds;
+		UE_LOG(LogTemp, Warning, TEXT("SimulateBarnesHut time : %f seconds"), secondsElapsed);
+		MoveAllBodies(DeltaTime);
+
 		break;
-	default: ;
 	}
-	UE_LOG(LogTemp, Warning, TEXT("Number Uobjs: %d"), GUObjectArray.GetObjectArrayNum());
+//	UE_LOG(LogTemp, Warning, TEXT("Number Uobjs: %d"), GUObjectArray.GetObjectArrayNum());
 }
 
-void ABodySimulator::SimulateNaiveMode(const float DeltaTime)
-{
-	GravityStep(DeltaTime);
-}
 
 void ABodySimulator::ForceDestroy(UQuadTree* QuadTreeToDelete)
 {
@@ -226,35 +201,27 @@ void ABodySimulator::ConstructTree()
 	QuadTree = NewObject<UQuadTree>(this);
 
 	QuadTree->Box = SceneBounds;
-
-	for (UBodyEntity* Body : Bodies)
+	/*ParallelFor(Bodies.Num(), [&](const int32 Index)
 	{
-		QuadTree->Insert(Body);
+		QuadTree->Insert(Bodies[Index]);
+	});*/
+	for (int Index = 0; Index < Bodies.Num(); ++Index)
+	{
+		QuadTree->Insert(Bodies[Index]);
 	}
 }
 
 void ABodySimulator::SimulateBarnesHut()
 {
-	ParallelFor(Bodies.Num(), [&](const int32 Index)
-	{
-		CalculateForcesBarnesHut(Bodies[Index], QuadTree);
-
-		AdjustPosition(Bodies[Index]->Position);
-		Bodies[Index]->Position += Bodies[Index]->Velocity * GetWorld()->GetDeltaSeconds();
-
-		Transforms[Bodies[Index]->Index].SetTranslation(Bodies[Index]->Get3DPosition());
-	});
 	/*for (int Index = 0; Index < Bodies.Num(); ++Index)
 	{
 		CalculateForcesBarnesHut(Bodies[Index], QuadTree);
+	}*/
 
-		AdjustPosition(Bodies[Index]->Position);
-		Bodies[Index]->Position += Bodies[Index]->Velocity * GetWorld()->GetDeltaSeconds();
-
-		Transforms[Bodies[Index]->Index].SetTranslation(Bodies[Index]->Get3DPosition());
-	} */
-
-	InstancedMesh->BatchUpdateInstancesTransforms(0, Transforms, true, true);
+	ParallelFor(Bodies.Num(), [&](const int32 Index)
+	{
+		CalculateForcesBarnesHut(Bodies[Index], QuadTree);
+	});
 }
 
 void ABodySimulator::CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree* Node)
@@ -289,9 +256,4 @@ void ABodySimulator::CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree
 	{
 		CalculateForcesBarnesHut(BodyEntity, Child);
 	}
-}
-
-void ABodySimulator::OnViewportResized(FViewport* Viewport, unsigned I)
-{
-	GetCameraValues();
 }

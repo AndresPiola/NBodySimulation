@@ -30,11 +30,11 @@ void UQuadTree::Initialize(const FBox2D& InBox)
 	Box = InBox;
 }
 
-bool UQuadTree::Insert(UBodyEntity* Entity)
+void UQuadTree::Insert(UBodyEntity* Entity)
 {
 	if (!Box.IsInside(Entity->Position))
 	{
-		return false;
+		return;
 	}
 	if (IsEmpty() && Children.Num() == 0)
 	{
@@ -42,7 +42,7 @@ bool UQuadTree::Insert(UBodyEntity* Entity)
 		Mass = BodyEntity->Mass;
 		CenterMass = BodyEntity->Position;
 		bIsEmpty = false;
-		return true;
+		return;
 	}
 
 	if (!bIsSubdivided)
@@ -51,16 +51,14 @@ bool UQuadTree::Insert(UBodyEntity* Entity)
 		SubDivide();
 		for (UQuadTree* Child : Children)
 		{
-			if (Child->Insert(BodyEntity))
-			{
-				break;
-			}
+			(Child->Insert(BodyEntity));
 		}
 	}
-	const bool bInserted = Children[0]->Insert(Entity) ||
-		Children[1]->Insert(Entity) ||
-		Children[2]->Insert(Entity) ||
-		Children[3]->Insert(Entity);
+	for (UQuadTree* Child : Children)
+	{
+		(Child->Insert(Entity));
+	}
+
 	float TempMass = 0;
 	float CenterX = 0;
 	float CenterY = 0;
@@ -80,8 +78,6 @@ bool UQuadTree::Insert(UBodyEntity* Entity)
 	Mass = TempMass;
 	CenterMass.X = CenterX / Size;
 	CenterMass.Y = CenterY / Size;
-
-	return bInserted;
 }
 
 FVector2D UQuadTree::GetCenterOfMass()
