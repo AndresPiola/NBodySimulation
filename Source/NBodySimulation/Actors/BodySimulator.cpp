@@ -82,6 +82,28 @@ void ABodySimulator::InitBodies()
 	SetActorTickEnabled(true);
 }
 
+void ABodySimulator::MoveAllBodies(const float DeltaTime, const bool bSkipAdjust)
+{
+	bool bSkipBody = false;
+	for (UBodyEntity* Body : Bodies)
+	{
+		if (!bSkipAdjust)
+		{
+			AdjustPosition(Body->Position);
+		}
+		Body->Position += Body->Velocity * DeltaTime;
+		Transforms[Body->Index].SetTranslation(Body->Get3DPosition());
+		if (Transforms[Body->Index].ContainsNaN())
+		{
+			bSkipBody = true;
+		}
+	}
+	if (!bSkipBody)
+	{
+		InstancedMesh->BatchUpdateInstancesTransforms(0, Transforms, true, true);
+	}
+}
+
 
 void ABodySimulator::SimulateCompareAllParallel(const float DeltaTime)
 {
@@ -101,26 +123,6 @@ void ABodySimulator::SimulateCompareAllParallel(const float DeltaTime)
 
 		Bodies[Index]->Velocity += Acceleration * DeltaTime;
 	});
-}
-
-
-void ABodySimulator::MoveAllBodies(const float DeltaTime)
-{
-	bool bSkipBody = false;
-	for (UBodyEntity* Body : Bodies)
-	{
-		AdjustPosition(Body->Position);
-		Body->Position += Body->Velocity * DeltaTime;
-		Transforms[Body->Index].SetTranslation(Body->Get3DPosition());
-		if (Transforms[Body->Index].ContainsNaN())
-		{
-			bSkipBody = true;
-		}
-	}
-	if (!bSkipBody)
-	{
-		InstancedMesh->BatchUpdateInstancesTransforms(0, Transforms, true, true);
-	}
 }
 
 
@@ -155,7 +157,7 @@ void ABodySimulator::Tick(const float DeltaTime)
 		break;
 	case ESimulationType::AllVsAll:
 		SimulateCompareAllParallel(DeltaTime);
-		MoveAllBodies(DeltaTime);
+		MoveAllBodies(DeltaTime, false);
 		break;
 	case ESimulationType::BarnesHut:
 		ConstructTree();
@@ -169,7 +171,7 @@ void ABodySimulator::Tick(const float DeltaTime)
 void ABodySimulator::ConstructTree()
 {
 	delete QuadTree;
-	QuadTree = new UQuadTree(SceneBounds);
+	QuadTree = new UQuadTree(SceneBounds, true);
 
 	for (int Index = 0; Index < Bodies.Num(); ++Index)
 	{
@@ -185,7 +187,7 @@ void ABodySimulator::SimulateBarnesHut(const float DeltaTime)
 	});
 }
 
-void ABodySimulator::CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree* Node, float DeltaTime)
+void ABodySimulator::CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree* Node, const float DeltaTime)
 {
 	if (Node == nullptr)
 	{
@@ -205,7 +207,7 @@ void ABodySimulator::CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree
 	}
 	FVector2D Center, Extents;
 	Node->Box.GetCenterAndExtents(Center, Extents);
-	//I could join this but i left this apart for better visual readability
+	//I could join this but i left this separated for better visual readability
 	const float s = Extents.GetMax();
 	const float d = FVector2D::Distance(Node->GetCenterOfMass(), BodyEntity->Position);
 

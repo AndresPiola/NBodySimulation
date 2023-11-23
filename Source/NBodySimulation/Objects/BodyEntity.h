@@ -48,6 +48,27 @@ public:
 		Velocity += Acceleration * DeltaSeconds;
 	}
 
+	void AdjustPosition(const FBox2D& SceneBounds)
+	{
+		//goes from to to negative size in X axis
+		if (Position.X < SceneBounds.Min.X)
+		{
+			Position.X = SceneBounds.Max.X;
+		}
+		else if (Position.X > SceneBounds.Max.X)
+		{
+			Position.X = SceneBounds.Min.X;
+		}
+		if (Position.Y < SceneBounds.Min.Y)
+		{
+			Position.Y = SceneBounds.Max.Y;
+		}
+		else if (Position.Y > SceneBounds.Max.Y)
+		{
+			Position.Y = SceneBounds.Min.Y;
+		}
+	}
+
 public:
 	UPROPERTY()
 	float MinimumGravityDistance = 100.0f;

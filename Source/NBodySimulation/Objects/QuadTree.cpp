@@ -23,6 +23,10 @@ bool UQuadTree::Insert(UBodyEntity* Entity)
 {
 	if (!Box.IsInside(Entity->Position))
 	{
+		if (bIsRoot)
+		{
+			Entity->AdjustPosition(Box);
+		}
 		return false;
 	}
 	if (IsEmpty() && !HasChildren())

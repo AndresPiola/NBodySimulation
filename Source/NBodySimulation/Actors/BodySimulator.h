@@ -31,7 +31,8 @@ public:
 	ABodySimulator();
 
 	virtual void InitBodies();
-	virtual void MoveAllBodies(float DeltaTime);
+	/*for the naive version we need to adjust inside of the move code*/
+	virtual void MoveAllBodies(float DeltaTime, bool bSkipAdjust = true);
 	virtual void AdjustPosition(FVector2D& InPosition) const;
 
 	virtual void ConstructTree();

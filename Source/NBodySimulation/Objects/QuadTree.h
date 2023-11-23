@@ -20,6 +20,13 @@ public:
 	UQuadTree(const FBox2D& InBox): BodyEntity(nullptr)
 	{
 		Box = InBox;
+		bIsRoot = false;
+	}
+
+	UQuadTree(const FBox2D& InBox, const bool InIsRoot): BodyEntity(nullptr)
+	{
+		Box = InBox;
+		bIsRoot = InIsRoot;
 	}
 
 	virtual ~UQuadTree()
@@ -62,4 +69,5 @@ private:
 	bool bIsEmpty = true;
 	float Mass = 0;
 	FVector2D CenterMass;
+	bool bIsRoot = false;
 };
