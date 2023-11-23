@@ -17,7 +17,7 @@ UENUM(BlueprintType)
 enum class ESimulationType:uint8
 {
 	None,
-	Naive,
+	AllVsAll,
 	BarnesHut
 };
 
@@ -34,15 +34,16 @@ public:
 	virtual void GetCameraValues();
 	virtual void InitBodies();
 	virtual void GravityStep(float DeltaTime);
-	virtual void UpdatePositionStep(float DeltaTime);
+
 	virtual void AdjustPosition(FVector2D& InPosition) const;
 
-
+	virtual void SimulateCompareAllParallel(float DeltaTime);
 	virtual void SimulateNaiveMode(float DeltaTime);
 
+	virtual void ForceDestroy(UQuadTree* QuadTreeToDelete);
 	virtual void ConstructTree();
 	virtual void SimulateBarnesHut();
-	virtual void CalculateForcesBarnesHut(FBodyEntity& BodyEntity, UQuadTree* Node);
+	virtual void CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree* Node);
 
 protected:
 	virtual void OnViewportResized(FViewport* Viewport, unsigned I);
@@ -61,34 +62,33 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UCameraComponent* Camera;
 
-	UPROPERTY(EditAnywhere, Category = "NBody Simulation Parameters")
+	UPROPERTY(EditAnywhere, Category = "NBody Simulation")
 	ESimulationType SimulationType = ESimulationType::BarnesHut;
 
-	UPROPERTY(EditAnywhere, Category = "NBody Simulation Parameters")
-	int BodyNum = 2500;
+	UPROPERTY(EditAnywhere, Category = "NBody Simulation")
+	int BodyNum = 1500;
 
-	UPROPERTY(EditAnywhere, Category = "NBody Simulation Parameters")
+	UPROPERTY(EditAnywhere, Category = "NBody Simulation")
 	float PlacementRadius = 1000.0f;
 
-	UPROPERTY(EditAnywhere, Category = "NBody Simulation Parameters")
+	UPROPERTY(EditAnywhere, Category = "NBody Simulation")
 	float BaseInitialSpeed = 500.0f;
 
-	UPROPERTY(EditAnywhere, meta=(UIMin=0, UIMax=1.5f), Category = "NBody Simulation Parameters")
+	UPROPERTY(EditAnywhere, meta=(UIMin=0, UIMax=1.5f), Category = "NBody Simulation")
 	float Theta = 0.7f;
 
-
-	UPROPERTY(EditAnywhere, Category = "NBody Simulation Parameters")
+	UPROPERTY(EditAnywhere, Category = "NBody Simulation")
 	float BodyDisplayScale = 0.02f;
-	UPROPERTY(EditAnywhere, Category = "NBody Simulation Parameters")
+	UPROPERTY(EditAnywhere, Category = "NBody Simulation")
 	float G = 1000.0f;
-	UPROPERTY(EditAnywhere, Category = "NBody Simulation Parameters")
+	UPROPERTY(EditAnywhere, Category = "NBody Simulation")
 	float MinMass = 20.0f;
-	UPROPERTY(EditAnywhere, Category = "NBody Simulation Parameters")
+	UPROPERTY(EditAnywhere, Category = "NBody Simulation")
 	float MaxMass = 100.0f;
-	UPROPERTY(EditAnywhere, Category = "NBody Simulation Parameters")
+	UPROPERTY(EditAnywhere, Category = "NBody Simulation")
 	float MinimumGravityDistance = 100.0f; // prevents division by zero and forces too high
 
-	UPROPERTY(EditAnywhere, Category="NBody Simulation Parameters")
+	UPROPERTY(EditAnywhere, Category="NBody Simulation")
 	bool bShowDebugGrid = false;
 
 	UPROPERTY(BlueprintReadOnly)
@@ -107,7 +107,7 @@ private:
 	UPROPERTY()
 	bool bCameraViewportReady;
 	UPROPERTY()
-	TArray<FBodyEntity> Bodies;
+	TArray<UBodyEntity*> Bodies;
 	UPROPERTY()
 	TArray<FTransform> Transforms;
 };

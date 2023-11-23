@@ -6,7 +6,7 @@
 #include "NBodySimulation/Utils/BodySimulatorFunctionLibrary.h"
 #include "UObject/Object.h"
 #include "BodyEntity.generated.h"
-
+/*
 USTRUCT()
 struct FBodyEntity
 {
@@ -67,8 +67,8 @@ public:
 	UPROPERTY()
 	bool bInitialized;
 };
+*/
 
-/*
 class ABodySimulator;
 
 UCLASS()
@@ -79,12 +79,16 @@ class NBODYSIMULATION_API UBodyEntity : public UObject
 public:
 	UBodyEntity(): Index(0) {}
 
-	virtual void Initialize(const FVector2D InPosition, const FVector2D InVelocity, const float InMass, const int32 InIndex)
+	virtual void Initialize(const FVector2D InPosition, const FVector2D InVelocity, const float InMass, const int32 InIndex,
+	                        const float InMinimumGravityDistance = 100.0f,
+	                        const float InG = 100.0f)
 	{
 		Position = InPosition;
 		Velocity = InVelocity;
 		Mass = InMass;
 		Index = InIndex;
+		MinimumGravityDistance = InMinimumGravityDistance;
+		G = InG;
 	}
 
 	FVector2D GetCenterOfMass() const
@@ -97,14 +101,14 @@ public:
 		return UBodySimulatorFunctionLibrary::ConvertFVector2Dto3D(Position);
 	}
 
-	void TryToApplyExternalForce(FVector2D OtherPosition, float OtherMass)
+	void TryToApplyExternalForce(FVector2D OtherPosition, float OtherMass, float DeltaSeconds)
 	{
 		FVector2D Acceleration(0.0f, 0.0f);
 		float Distance = FVector2D::Distance(Position, OtherPosition);
 		Distance = FMath::Max(Distance, MinimumGravityDistance); // avoids division by zero
 		Acceleration += OtherMass / Distance * G / Distance * (OtherPosition - Position) / Distance;
 
-		Velocity += Acceleration * GetWorld()->GetDeltaSeconds();
+		Velocity += Acceleration * DeltaSeconds;
 	}
 
 public:
@@ -122,4 +126,4 @@ public:
 	float Mass = 0;
 	UPROPERTY()
 	int32 Index;
-};*/
+};

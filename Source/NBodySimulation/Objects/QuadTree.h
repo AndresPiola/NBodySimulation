@@ -7,21 +7,6 @@
 #include "UObject/Object.h"
 #include "QuadTree.generated.h"
 
-/*
-USTRUCT()
-struct FBodyEntity
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	FVector2D Position;
-	UPROPERTY()
-	FVector2D Velocity;
-	UPROPERTY()
-	float Mass = 0;
-	UPROPERTY()
-	int32 Index;
-};*/
 
 struct FBodyEntity;
 class UBodyEntity;
@@ -39,19 +24,22 @@ class NBODYSIMULATION_API UQuadTree : public UObject
 
 public:
 	virtual void Initialize(const FBox2D& InBox);
-	virtual bool Insert(FBodyEntity& Entity);
+	virtual bool Insert(UBodyEntity* Entity);
 	virtual void Show();
 	virtual FVector2D GetCenterOfMass();
 	virtual bool IsLeaf();
 	virtual bool IsEmpty();
+	virtual void Reset();
+	virtual bool IsActive() { return bIsActive; }
+	virtual void SetActive() { bIsActive = true; }
+	void DeactivateFast();
 
 public:
 	UPROPERTY(BlueprintReadOnly)
 	FBox2D Box;
 
-
 	UPROPERTY()
-	FBodyEntity BodyEntity;
+	UBodyEntity* BodyEntity;
 
 	UPROPERTY(BlueprintReadOnly)
 	TArray<UQuadTree*> Children;
@@ -64,8 +52,11 @@ public:
 
 private:
 	UPROPERTY()
-	bool bIsSubdivided;
+	bool bIsSubdivided = false;
 
 	UPROPERTY()
 	bool bIsEmpty = true;
+
+	UPROPERTY()
+	bool bIsActive = false;
 };

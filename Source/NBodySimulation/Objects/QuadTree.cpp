@@ -30,17 +30,17 @@ void UQuadTree::Initialize(const FBox2D& InBox)
 	Box = InBox;
 }
 
-bool UQuadTree::Insert(FBodyEntity& Entity)
+bool UQuadTree::Insert(UBodyEntity* Entity)
 {
-	if (!Box.IsInside(Entity.Position))
+	if (!Box.IsInside(Entity->Position))
 	{
 		return false;
 	}
 	if (IsEmpty() && Children.Num() == 0)
 	{
 		BodyEntity = Entity;
-		Mass = BodyEntity.Mass;
-		CenterMass = BodyEntity.Position;
+		Mass = BodyEntity->Mass;
+		CenterMass = BodyEntity->Position;
 		bIsEmpty = false;
 		return true;
 	}
@@ -68,7 +68,7 @@ bool UQuadTree::Insert(FBodyEntity& Entity)
 
 	for (const UQuadTree* Child : Children)
 	{
-		if (!Child->BodyEntity.bInitialized)
+		if (!Child->BodyEntity)
 		{
 			continue;
 		}
@@ -86,11 +86,7 @@ bool UQuadTree::Insert(FBodyEntity& Entity)
 
 FVector2D UQuadTree::GetCenterOfMass()
 {
-	//if (BodyEntity)
-	{
-		return BodyEntity.GetCenterOfMass();
-	}
-	return FVector2D::Zero();
+	return BodyEntity->GetCenterOfMass();
 }
 
 bool UQuadTree::IsLeaf()
@@ -105,6 +101,38 @@ bool UQuadTree::IsLeaf()
 bool UQuadTree::IsEmpty()
 {
 	return bIsEmpty;
+}
+
+void UQuadTree::Reset()
+{
+	bIsActive = false;
+	Box = FBox2D();
+	BodyEntity = nullptr;
+	for (UQuadTree* Child : Children)
+	{
+		if (Child)
+		{
+			Child->Reset();
+		}
+	}
+	Children.Empty();
+	Mass = 0;
+	CenterMass = FVector2D();
+	bIsSubdivided = false;
+	bIsEmpty = true;
+}
+
+void UQuadTree::DeactivateFast()
+{
+	bIsActive = false;
+	Box = FBox2D();
+	BodyEntity = nullptr;
+
+	Children.Empty();
+	Mass = 0;
+	CenterMass = FVector2D();
+	bIsSubdivided = false;
+	bIsEmpty = true;
 }
 
 void UQuadTree::Show()
