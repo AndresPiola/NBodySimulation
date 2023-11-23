@@ -7,7 +7,6 @@
 #include "BodyEntity.h"
 #include "NBodySimulation/Utils/BodySimulatorFunctionLibrary.h"
 
-UQuadTree::UQuadTree(): BodyEntity(nullptr), bIsSubdivided(false) {}
 
 void UQuadTree::SubDivide()
 {
@@ -31,17 +30,17 @@ void UQuadTree::Initialize(const FBox2D& InBox)
 	Box = InBox;
 }
 
-bool UQuadTree::Insert(UBodyEntity* Entity)
+bool UQuadTree::Insert(FBodyEntity& Entity)
 {
-	if (!Box.IsInside(Entity->Position))
+	if (!Box.IsInside(Entity.Position))
 	{
 		return false;
 	}
 	if (IsEmpty() && Children.Num() == 0)
 	{
 		BodyEntity = Entity;
-		Mass = BodyEntity->Mass;
-		CenterMass = BodyEntity->Position;
+		Mass = BodyEntity.Mass;
+		CenterMass = BodyEntity.Position;
 		bIsEmpty = false;
 		return true;
 	}
@@ -69,7 +68,7 @@ bool UQuadTree::Insert(UBodyEntity* Entity)
 
 	for (const UQuadTree* Child : Children)
 	{
-		if (!Child->BodyEntity)
+		if (!Child->BodyEntity.bInitialized)
 		{
 			continue;
 		}
@@ -87,9 +86,9 @@ bool UQuadTree::Insert(UBodyEntity* Entity)
 
 FVector2D UQuadTree::GetCenterOfMass()
 {
-	if (BodyEntity)
+	//if (BodyEntity)
 	{
-		return BodyEntity->GetCenterOfMass();
+		return BodyEntity.GetCenterOfMass();
 	}
 	return FVector2D::Zero();
 }

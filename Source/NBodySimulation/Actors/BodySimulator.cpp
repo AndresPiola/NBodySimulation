@@ -90,8 +90,7 @@ void ABodySimulator::InitBodies()
 		);
 
 		Transforms[Index] = MeshTransform;
-		Bodies[Index] = NewObject<UBodyEntity>(this);
-		Bodies[Index]->Initialize(RandomPosition, FVector2D(RandomVelocity.X, RandomVelocity.Y), Mass, Index);
+		Bodies[Index] = FBodyEntity(RandomPosition, FVector2D(RandomVelocity.X, RandomVelocity.Y), Mass, Index);
 	}
 	InstancedMesh->AddInstances(Transforms, false, true);
 	SetActorTickEnabled(true);
@@ -103,30 +102,30 @@ void ABodySimulator::GravityStep(const float DeltaTime)
 	ParallelFor(Bodies.Num(), [&](const int32 Index)
 	{
 		FVector2D Acceleration(0.0f, 0.0f);
-		for (const UBodyEntity* AffectingBody : Bodies)
+		for (const FBodyEntity AffectingBody : Bodies)
 		{
-			if (AffectingBody->Index == Bodies[Index]->Index)
+			if (AffectingBody.Index == Bodies[Index].Index)
 			{
 				continue; // exclude self
 			}
-			float Distance = FVector2D::Distance(Bodies[Index]->Position, AffectingBody->Position);
-			Distance = FMath::Max(Distance, MinimumGravityDistance); // avoids division by zero
-			Acceleration += AffectingBody->Mass / Distance * G / Distance * (AffectingBody->Position - Bodies[Index]->Position) / Distance;
+			float Distance = FVector2D::Distance(Bodies[Index].Position, AffectingBody.Position);
+			Distance = FMath::Max(Distance, MinimumGravityDistance);
+			Acceleration += AffectingBody.Mass / Distance * G / Distance * (AffectingBody.Position - Bodies[Index].Position) / Distance;
 		}
 
-		Bodies[Index]->Velocity += Acceleration * DeltaTime;
+		Bodies[Index].Velocity += Acceleration * DeltaTime;
 	});
 }
 
 
 void ABodySimulator::UpdatePositionStep(const float DeltaTime)
 {
-	for (UBodyEntity* Body : Bodies)
+	for (auto Body : Bodies)
 	{
-		AdjustPosition(Body->Position);
-		Body->Position += Body->Velocity * DeltaTime;
+		AdjustPosition(Body.Position);
+		Body.Position += Body.Velocity * DeltaTime;
 
-		Transforms[Body->Index].SetTranslation(Body->Get3DPosition());
+		Transforms[Body.Index].SetTranslation(Body.Get3DPosition());
 	}
 
 	InstancedMesh->BatchUpdateInstancesTransforms(0, Transforms, true, true);
@@ -189,6 +188,7 @@ void ABodySimulator::Tick(float DeltaTime)
 		break;
 	default: ;
 	}
+	UE_LOG(LogTemp, Warning, TEXT("Number Uobjs: %d"), GUObjectArray.GetObjectArrayNum());
 }
 
 void ABodySimulator::SimulateNaiveMode(const float DeltaTime)
@@ -202,7 +202,7 @@ void ABodySimulator::ConstructTree()
 	QuadTree = NewObject<UQuadTree>(this);
 	QuadTree->Box = SceneBounds;
 
-	for (UBodyEntity* Body : Bodies)
+	for (auto Body : Bodies)
 	{
 		QuadTree->Insert(Body);
 	}
@@ -214,40 +214,40 @@ void ABodySimulator::SimulateBarnesHut()
 	{
 		CalculateForcesBarnesHut(Bodies[Index], QuadTree);
 
-		AdjustPosition(Bodies[Index]->Position);
-		Bodies[Index]->Position += Bodies[Index]->Velocity * GetWorld()->GetDeltaSeconds();
+		AdjustPosition(Bodies[Index].Position);
+		Bodies[Index].Position += Bodies[Index].Velocity * GetWorld()->GetDeltaSeconds();
 
-		Transforms[Bodies[Index]->Index].SetTranslation(Bodies[Index]->Get3DPosition());
+		Transforms[Bodies[Index].Index].SetTranslation(Bodies[Index].Get3DPosition());
 	});
 	InstancedMesh->BatchUpdateInstancesTransforms(0, Transforms, true, true);
 }
 
-void ABodySimulator::CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree* Node)
+void ABodySimulator::CalculateForcesBarnesHut(FBodyEntity& BodyEntity, UQuadTree* Node)
 {
 	if (Node == nullptr)
 	{
 		return;
 	}
-	if (Node->IsLeaf() && Node->BodyEntity)
+	if (Node->IsLeaf() && Node->BodyEntity.bInitialized)
 	{
-		if (Node->BodyEntity->Index == BodyEntity->Index)
+		if (Node->BodyEntity.Index == BodyEntity.Index)
 		{
 			return;
 		}
 
-		BodyEntity->TryToApplyExternalForce(Node->BodyEntity->Position, Node->BodyEntity->Mass, this);
+		BodyEntity.TryToApplyExternalForce(Node->BodyEntity.Position, Node->BodyEntity.Mass, GetWorld()->GetDeltaSeconds());
 	}
 	FVector2D Center, Extents;
 	Node->Box.GetCenterAndExtents(Center, Extents);
 	const float s = Extents.GetMax();
-	const float d = FVector2D::Distance(Node->CenterMass, BodyEntity->Position);
+	const float d = FVector2D::Distance(Node->CenterMass, BodyEntity.Position);
 
 	const float Quotient = s / d;
 	//UE_LOG(LogTemp,Log,TEXT("s/d %f/%f=%f < %f θ "),s,d,Quotient,Theta);
 	if (Quotient < Theta)
 	{
 		//UE_LOG(LogTemp, Log, TEXT("Skipped because TestValue< theta"));
-		BodyEntity->TryToApplyExternalForce(Node->CenterMass, Node->Mass, this);
+		BodyEntity.TryToApplyExternalForce(Node->CenterMass, Node->Mass, GetWorld()->GetDeltaSeconds());
 		return;
 	}
 	for (UQuadTree* Child : Node->Children)

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "NBodySimulation/Objects/BodyEntity.h"
 #include "NBodySimulation/Objects/QuadTree.h"
 #include "BodySimulator.generated.h"
 
@@ -41,7 +42,7 @@ public:
 
 	virtual void ConstructTree();
 	virtual void SimulateBarnesHut();
-	virtual void CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree* Node);
+	virtual void CalculateForcesBarnesHut(FBodyEntity& BodyEntity, UQuadTree* Node);
 
 protected:
 	virtual void OnViewportResized(FViewport* Viewport, unsigned I);
@@ -106,7 +107,7 @@ private:
 	UPROPERTY()
 	bool bCameraViewportReady;
 	UPROPERTY()
-	TArray<UBodyEntity*> Bodies;
+	TArray<FBodyEntity> Bodies;
 	UPROPERTY()
 	TArray<FTransform> Transforms;
 };
