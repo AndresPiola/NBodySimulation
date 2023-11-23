@@ -6,13 +6,11 @@
 #include "Camera/CameraComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "NBodySimulation/Objects/BodyEntity.h"
 #include "NBodySimulation/Objects/QuadTree.h"
 #include "NBodySimulation/Utils/BodySimulatorFunctionLibrary.h"
 
-constexpr float MAX_TICK = 0.0167; // to have stable simulation steps
 
 // Sets default values
 ABodySimulator::ABodySimulator()
@@ -33,6 +31,10 @@ ABodySimulator::ABodySimulator()
 	Camera->SetOrthoWidth(5000);
 
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
+	/*hardcoded with magic numbers, I could adjust this with viewport calculation but
+	 * it is not required or important right now
+	 */
+
 	SceneBounds = FBox2D({0, 0}, {3296, 5000});
 	SetActorTickEnabled(false);
 }
@@ -40,11 +42,14 @@ ABodySimulator::ABodySimulator()
 void ABodySimulator::BeginPlay()
 {
 	Super::BeginPlay();
-
-	FTimerHandle TimerHandle;
+	/* I want to calculate viewport size so I could get the exact SceneBounds I should add a code here
+	  the timer is because UE gets the wrong viewport Size at the beginning, because according to UE docs
+	we must wait until HUD is ready
+	*/
+	/*FTimerHandle TimerHandle;
 	FTimerDelegate TimerDelegate;
 	TimerDelegate.BindUObject(this, &ThisClass::InitBodies);
-	//GetWorld()->GetTimerManager().SetTimer(TimerHandle, TimerDelegate, 1.0f, false);
+	 GetWorld()->GetTimerManager().SetTimer(TimerHandle, TimerDelegate, 1.0f, false);*/
 	InitBodies();
 }
 
@@ -151,10 +156,6 @@ void ABodySimulator::AdjustPosition(FVector2D& InPosition) const
 
 void ABodySimulator::Tick(float DeltaTime)
 {
-	if (DeltaTime > MAX_TICK)
-	{
-		DeltaTime = MAX_TICK;
-	}
 	Super::Tick(DeltaTime);
 
 	switch (SimulationType)
@@ -166,63 +167,20 @@ void ABodySimulator::Tick(float DeltaTime)
 		MoveAllBodies(DeltaTime);
 		break;
 	case ESimulationType::BarnesHut:
-		double startSeconds = FPlatformTime::Seconds();
 		ConstructTree();
-		double secondsElapsed = FPlatformTime::Seconds() - startSeconds;
-		UE_LOG(LogTemp, Warning, TEXT("ConstructTree time : %f seconds"), secondsElapsed);
-		startSeconds = FPlatformTime::Seconds();
 		SimulateBarnesHut(DeltaTime);
-		secondsElapsed = FPlatformTime::Seconds() - startSeconds;
-		UE_LOG(LogTemp, Warning, TEXT("SimulateBarnesHut time : %f seconds"), secondsElapsed);
 		MoveAllBodies(DeltaTime);
-
 		break;
 	}
-	//	UE_LOG(LogTemp, Warning, TEXT("Number Uobjs: %d"), GUObjectArray.GetObjectArrayNum());
 }
-
-/*
-void ABodySimulator::ForceDestroy(UQuadTree* QuadTreeToDelete)
-{
-	if (!QuadTreeToDelete)
-	{
-		return;
-	}
-	if (!QuadTreeToDelete->IsValidLowLevel())
-	{
-		return;
-	}
-
-	for (UQuadTree* Child : QuadTreeToDelete->Children)
-	{
-		ForceDestroy(Child);
-	}
-
-	//Begin Destroy
-	QuadTreeToDelete->ConditionalBeginDestroy();
-	QuadTreeToDelete = nullptr;
-}*/
 
 
 void ABodySimulator::ConstructTree()
 {
-	//we need to do this because tehre is a limit of uobjects in UE
-	if (QuadTree)
-	{
-		//ForceDestroy(QuadTree);
-		//GC
-		//	QuadTree.Reset();
-		QuadTree = nullptr;
-		//GEngine->ForceGarbageCollection();
-	}
 	delete QuadTree;
 	QuadTree = new UQuadTree();
-
 	QuadTree->Box = SceneBounds;
-	/*ParallelFor(Bodies.Num(), [&](const int32 Index)
-	{
-		QuadTree->Insert(Bodies[Index]);
-	});*/
+
 	for (int Index = 0; Index < Bodies.Num(); ++Index)
 	{
 		QuadTree->Insert(Bodies[Index]);
@@ -231,11 +189,6 @@ void ABodySimulator::ConstructTree()
 
 void ABodySimulator::SimulateBarnesHut(const float DeltaTime)
 {
-	/*for (int Index = 0; Index < Bodies.Num(); ++Index)
-	{
-		CalculateForcesBarnesHut(Bodies[Index], QuadTree, DeltaTime);
-	}*/
-
 	ParallelFor(Bodies.Num(), [&](const int32 Index)
 	{
 		CalculateForcesBarnesHut(Bodies[Index], QuadTree, DeltaTime);

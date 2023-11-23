@@ -30,16 +30,14 @@ public:
 	// Sets default values for this actor's properties
 	ABodySimulator();
 
-
 	virtual void InitBodies();
-
+	virtual void MoveAllBodies(float DeltaTime);
 	virtual void AdjustPosition(FVector2D& InPosition) const;
 
-	virtual void MoveAllBodies(float DeltaTime);
-
-	virtual void SimulateCompareAllParallel(float DeltaTime);
-	//	virtual void ForceDestroy(UQuadTree* QuadTreeToDelete);
 	virtual void ConstructTree();
+	/*this method uses naive aprox, tha means compare everyone vs everyone O(n¨2)*/
+	virtual void SimulateCompareAllParallel(float DeltaTime);
+	/*this method uses quadtree and should be O(nlog(n))*/
 	virtual void SimulateBarnesHut(float DeltaTime);
 	virtual void CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree* Node, float DeltaTime);
 
@@ -96,7 +94,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	FVector2D TopRightBounds;
-
 
 	UQuadTree* QuadTree;
 

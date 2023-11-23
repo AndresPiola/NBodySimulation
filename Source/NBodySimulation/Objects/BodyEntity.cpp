@@ -2,5 +2,3 @@
 
 
 #include "BodyEntity.h"
-
-#include "NBodySimulation/Actors/BodySimulator.h"
