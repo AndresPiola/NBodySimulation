@@ -5,58 +5,79 @@
 #include "CoreMinimal.h"
 #include "BodyEntity.h"
 #include "UObject/Object.h"
-#include "QuadTree.generated.h"
 
 
-struct FBodyEntity;
 class UBodyEntity;
 /**
  *
  */
-UCLASS()
-class NBODYSIMULATION_API UQuadTree : public UObject
+
+class UQuadTree
 {
-	GENERATED_BODY()
-	UQuadTree(): bIsSubdivided(false) {}
+public:
+	UQuadTree(): BodyEntity(nullptr), Children{}, bIsSubdivided(false) {}
 
 
 	virtual void SubDivide();
 
-public:
+
+	virtual ~UQuadTree()
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			if (Children[i] != nullptr)
+			{
+				delete Children[i];
+				Children[i] = nullptr;
+			}
+		}
+	};
+	FORCEINLINE bool HasChildren()
+	{
+		for (const UQuadTree* Child : Children)
+		{
+			if (Child != nullptr)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
 	virtual void Initialize(const FBox2D& InBox);
-	virtual void Insert(UBodyEntity* Entity);
-	virtual void Show();
+	//	virtual void Insert(TSharedPtr<UBodyEntity> Entity);
+
+
+	virtual bool Insert(UBodyEntity* Entity);
+
 	virtual FVector2D GetCenterOfMass();
+	virtual float GetMass();
 	virtual bool IsLeaf();
 	virtual bool IsEmpty();
-	virtual void Reset();
+	//virtual void Reset();
 	virtual bool IsActive() { return bIsActive; }
 	virtual void SetActive() { bIsActive = true; }
-	void DeactivateFast();
+	//	void DeactivateFast();
 
 public:
-	UPROPERTY(BlueprintReadOnly)
 	FBox2D Box;
 
-	UPROPERTY()
 	UBodyEntity* BodyEntity;
 
-	UPROPERTY(BlueprintReadOnly)
-	TArray<UQuadTree*> Children;
-
-	UPROPERTY()
-	float Mass = 0;
-
-	UPROPERTY()
-	FVector2D CenterMass;
+	union
+	{
+		UQuadTree* Children[4];
+	};
 
 private:
-	UPROPERTY()
 	bool bIsSubdivided = false;
 
-	UPROPERTY()
-	bool bIsEmpty = true;
 
-	UPROPERTY()
+	bool bIsEmpty = true;
+	float Mass = 0;
+
+
+	FVector2D CenterMass;
+
 	bool bIsActive = false;
 };

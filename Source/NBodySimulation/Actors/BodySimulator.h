@@ -38,10 +38,10 @@ public:
 	virtual void MoveAllBodies(float DeltaTime);
 
 	virtual void SimulateCompareAllParallel(float DeltaTime);
-	virtual void ForceDestroy(UQuadTree* QuadTreeToDelete);
+	//	virtual void ForceDestroy(UQuadTree* QuadTreeToDelete);
 	virtual void ConstructTree();
-	virtual void SimulateBarnesHut();
-	virtual void CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree* Node);
+	virtual void SimulateBarnesHut(float DeltaTime);
+	virtual void CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree* Node, float DeltaTime);
 
 protected:
 	virtual void BeginPlay() override;
@@ -97,7 +97,7 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	FVector2D TopRightBounds;
 
-	UPROPERTY(BlueprintReadOnly)
+
 	UQuadTree* QuadTree;
 
 private:

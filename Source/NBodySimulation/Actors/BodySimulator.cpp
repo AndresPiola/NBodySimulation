@@ -101,15 +101,30 @@ void ABodySimulator::SimulateCompareAllParallel(const float DeltaTime)
 
 void ABodySimulator::MoveAllBodies(const float DeltaTime)
 {
-	for (UBodyEntity* Body : Bodies)
+	bool bErrorFound = false;
+	for (auto Body : Bodies)
 	{
 		AdjustPosition(Body->Position);
 		Body->Position += Body->Velocity * DeltaTime;
 
 		Transforms[Body->Index].SetTranslation(Body->Get3DPosition());
+		if (Transforms[Body->Index].ContainsNaN())
+		{
+			UE_LOG(LogTemp, Error, TEXT("%d cntains NAN"), Body->Index);
+			bErrorFound = true;
+		}
 	}
-
-	InstancedMesh->BatchUpdateInstancesTransforms(0, Transforms, true, true);
+	if (!bErrorFound)
+	{
+		if (Transforms[0].ContainsNaN())
+		{
+			UE_LOG(LogTemp, Error, TEXT("Transforms cntains NAN"));
+		}
+		else
+		{
+			InstancedMesh->BatchUpdateInstancesTransforms(0, Transforms, true, true);
+		}
+	}
 }
 
 
@@ -156,17 +171,17 @@ void ABodySimulator::Tick(float DeltaTime)
 		double secondsElapsed = FPlatformTime::Seconds() - startSeconds;
 		UE_LOG(LogTemp, Warning, TEXT("ConstructTree time : %f seconds"), secondsElapsed);
 		startSeconds = FPlatformTime::Seconds();
-		SimulateBarnesHut();
+		SimulateBarnesHut(DeltaTime);
 		secondsElapsed = FPlatformTime::Seconds() - startSeconds;
 		UE_LOG(LogTemp, Warning, TEXT("SimulateBarnesHut time : %f seconds"), secondsElapsed);
 		MoveAllBodies(DeltaTime);
 
 		break;
 	}
-//	UE_LOG(LogTemp, Warning, TEXT("Number Uobjs: %d"), GUObjectArray.GetObjectArrayNum());
+	//	UE_LOG(LogTemp, Warning, TEXT("Number Uobjs: %d"), GUObjectArray.GetObjectArrayNum());
 }
 
-
+/*
 void ABodySimulator::ForceDestroy(UQuadTree* QuadTreeToDelete)
 {
 	if (!QuadTreeToDelete)
@@ -186,7 +201,7 @@ void ABodySimulator::ForceDestroy(UQuadTree* QuadTreeToDelete)
 	//Begin Destroy
 	QuadTreeToDelete->ConditionalBeginDestroy();
 	QuadTreeToDelete = nullptr;
-}
+}*/
 
 
 void ABodySimulator::ConstructTree()
@@ -194,11 +209,14 @@ void ABodySimulator::ConstructTree()
 	//we need to do this because tehre is a limit of uobjects in UE
 	if (QuadTree)
 	{
-		ForceDestroy(QuadTree);
+		//ForceDestroy(QuadTree);
 		//GC
-		GEngine->ForceGarbageCollection();
+		//	QuadTree.Reset();
+		QuadTree = nullptr;
+		//GEngine->ForceGarbageCollection();
 	}
-	QuadTree = NewObject<UQuadTree>(this);
+	delete QuadTree;
+	QuadTree = new UQuadTree();
 
 	QuadTree->Box = SceneBounds;
 	/*ParallelFor(Bodies.Num(), [&](const int32 Index)
@@ -211,20 +229,20 @@ void ABodySimulator::ConstructTree()
 	}
 }
 
-void ABodySimulator::SimulateBarnesHut()
+void ABodySimulator::SimulateBarnesHut(const float DeltaTime)
 {
 	/*for (int Index = 0; Index < Bodies.Num(); ++Index)
 	{
-		CalculateForcesBarnesHut(Bodies[Index], QuadTree);
+		CalculateForcesBarnesHut(Bodies[Index], QuadTree, DeltaTime);
 	}*/
 
 	ParallelFor(Bodies.Num(), [&](const int32 Index)
 	{
-		CalculateForcesBarnesHut(Bodies[Index], QuadTree);
+		CalculateForcesBarnesHut(Bodies[Index], QuadTree, DeltaTime);
 	});
 }
 
-void ABodySimulator::CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree* Node)
+void ABodySimulator::CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree* Node, float DeltaTime)
 {
 	if (Node == nullptr)
 	{
@@ -236,24 +254,30 @@ void ABodySimulator::CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree
 		{
 			return;
 		}
-
-		BodyEntity->TryToApplyExternalForce(Node->BodyEntity->Position, Node->BodyEntity->Mass, GetWorld()->GetDeltaSeconds());
+		BodyEntity->TryToApplyExternalForce(Node->GetCenterOfMass(), Node->GetMass(), DeltaTime);
+	}
+	if (Node->IsEmpty())
+	{
+		return;
 	}
 	FVector2D Center, Extents;
 	Node->Box.GetCenterAndExtents(Center, Extents);
 	const float s = Extents.GetMax();
-	const float d = FVector2D::Distance(Node->CenterMass, BodyEntity->Position);
+	const float d = FVector2D::Distance(Node->GetCenterOfMass(), BodyEntity->Position);
 
 	const float Quotient = s / d;
 	//UE_LOG(LogTemp,Log,TEXT("s/d %f/%f=%f < %f θ "),s,d,Quotient,Theta);
 	if (Quotient < Theta)
 	{
-		//UE_LOG(LogTemp, Log, TEXT("Skipped because TestValue< theta"));
-		BodyEntity->TryToApplyExternalForce(Node->CenterMass, Node->Mass, GetWorld()->GetDeltaSeconds());
+		if (Node->GetMass() > 0)
+		{
+			BodyEntity->TryToApplyExternalForce(Node->GetCenterOfMass(), Node->GetMass(), DeltaTime);
+		}
+
 		return;
 	}
-	for (UQuadTree* Child : Node->Children)
+	for (auto Child : Node->Children)
 	{
-		CalculateForcesBarnesHut(BodyEntity, Child);
+		CalculateForcesBarnesHut(BodyEntity, Child, DeltaTime);
 	}
 }
