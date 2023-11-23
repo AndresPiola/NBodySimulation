@@ -12,14 +12,14 @@ void UQuadTree::SubDivide()
 	FVector2D Center;
 	FVector2D Size;
 	Box.GetCenterAndExtents(Center, Size);
-
-	Children[0] = new UQuadTree();
+	Children.Reserve(4);
+	Children.Insert(new UQuadTree(), 0);
 	Children[0]->Initialize(FBox2D({Center.X, Center.Y - Size.Y}, {Center.X + Size.X, Center.Y}));
-	Children[1] = new UQuadTree();
+	Children.Insert(new UQuadTree(), 1);
 	Children[1]->Initialize(FBox2D({Center.X, Center.Y}, {Center.X + Size.X, Center.Y + Size.Y}));
-	Children[2] = new UQuadTree();
+	Children.Insert(new UQuadTree(), 2);
 	Children[2]->Initialize(FBox2D({Center.X - Size.X, Center.Y - Size.Y}, {Center.X, Center.Y}));
-	Children[3] = new UQuadTree();
+	Children.Insert(new UQuadTree(), 3);
 	Children[3]->Initialize(FBox2D({Center.X - Size.X, Center.Y}, {Center.X, Center.Y + Size.Y}));
 }
 
@@ -81,119 +81,7 @@ bool UQuadTree::Insert(UBodyEntity* Entity)
 	CenterMass.Y = CenterY / Size;
 
 	return bInserted;
-} /*
-bool UQuadTree::Insert(UBodyEntity* Entity)
-{
-	if (!Box.IsInside(Entity->Position))
-	{
-		return false;
-	}
-	if (IsEmpty() && !HasChildren())
-	{
-		BodyEntity = (Entity);
-		Mass = BodyEntity->Mass;
-		CenterMass = BodyEntity->Position;
-		bIsEmpty = false;
-		return true;
-	}
-
-	if (!bIsSubdivided)
-	{
-		bIsSubdivided = true;
-		SubDivide();
-		for (UQuadTree* Child : Children)
-		{
-			if (Child->Insert(BodyEntity))
-			{
-				break;
-			}
-		}
-	}
-	for (auto Child : Children)
-	{
-		if (Child)
-		{
-			Child->Insert(Entity);
-		}
-	}
-
-	float TempMass = 0;
-	float CenterX = 0;
-	float CenterY = 0;
-	int Size = 0;
-
-	for (auto Child : Children)
-	{
-		if (!Child)
-		{
-			continue;
-		}
-		Size++;
-		TempMass += Child->Mass;
-		CenterX += Child->CenterMass.X;
-		CenterY += Child->CenterMass.Y;
-	}
-
-	Mass = TempMass;
-	CenterMass.X = CenterX / Size;
-	CenterMass.Y = CenterY / Size;
-	if (Mass < 1)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Mass for node is 0"));
-	}
-	return true;
 }
-*/
-/*
-void UQuadTree::Insert(TSharedPtr<UBodyEntity> Entity)
-{
-	if (!Box.IsInside(Entity->Position))
-	{
-		return;
-	}
-	if (IsEmpty() && Children.Num() == 0)
-	{
-		BodyEntity = Entity;
-		Mass = BodyEntity->Mass;
-		CenterMass = BodyEntity->Position;
-		bIsEmpty = false;
-		return;
-	}
-
-	if (!bIsSubdivided)
-	{
-		bIsSubdivided = true;
-		SubDivide();
-		for (auto Child : Children)
-		{
-			(Child->Insert(BodyEntity));
-		}
-	}
-	for (auto Child : Children)
-	{
-		(Child->Insert(Entity));
-	}
-
-	float TempMass = 0;
-	float CenterX = 0;
-	float CenterY = 0;
-	int Size = 0;
-
-	for (auto Child : Children)
-	{
-		if (!Child->BodyEntity)
-		{
-			continue;
-		}
-		Size++;
-		TempMass += Child->Mass;
-		CenterX += Child->CenterMass.X;
-		CenterY += Child->CenterMass.Y;
-	}
-	Mass = TempMass;
-	CenterMass.X = CenterX / Size;
-	CenterMass.Y = CenterY / Size;
-}*/
 
 FVector2D UQuadTree::GetCenterOfMass()
 {

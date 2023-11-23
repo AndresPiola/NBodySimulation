@@ -45,8 +45,6 @@ public:
 	}
 
 	virtual void Initialize(const FBox2D& InBox);
-	//	virtual void Insert(TSharedPtr<UBodyEntity> Entity);
-
 
 	virtual bool Insert(UBodyEntity* Entity);
 
@@ -54,30 +52,15 @@ public:
 	virtual float GetMass();
 	virtual bool IsLeaf();
 	virtual bool IsEmpty();
-	//virtual void Reset();
-	virtual bool IsActive() { return bIsActive; }
-	virtual void SetActive() { bIsActive = true; }
-	//	void DeactivateFast();
 
 public:
 	FBox2D Box;
-
 	UBodyEntity* BodyEntity;
-
-	union
-	{
-		UQuadTree* Children[4];
-	};
+	TArray<UQuadTree*> Children;
 
 private:
 	bool bIsSubdivided = false;
-
-
 	bool bIsEmpty = true;
 	float Mass = 0;
-
-
 	FVector2D CenterMass;
-
-	bool bIsActive = false;
 };
