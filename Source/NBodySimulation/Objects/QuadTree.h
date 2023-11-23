@@ -47,11 +47,6 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	FBox2D Box;
 
-	UPROPERTY()
-	bool bIsSubdivided;
-
-	UPROPERTY()
-	bool bIsEmpty = true;
 
 	UPROPERTY()
 	UBodyEntity* BodyEntity;
@@ -64,4 +59,11 @@ public:
 
 	UPROPERTY()
 	FVector2D CenterMass;
+
+private:
+	UPROPERTY()
+	bool bIsSubdivided;
+
+	UPROPERTY()
+	bool bIsEmpty = true;
 };

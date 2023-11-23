@@ -7,13 +7,15 @@
 #include "BodyEntity.h"
 #include "NBodySimulation/Utils/BodySimulatorFunctionLibrary.h"
 
-UQuadTree::UQuadTree(): bIsSubdivided(false), BodyEntity(nullptr) {}
+UQuadTree::UQuadTree(): BodyEntity(nullptr), bIsSubdivided(false) {}
 
 void UQuadTree::SubDivide()
 {
 	Children.Reserve(4);
-	UE::Math::TVector2<double> Center = Box.GetCenter();
-	const UE::Math::TVector2<double> Size = Box.GetExtent();
+	FVector2D Center;
+	FVector2D Size;
+	Box.GetCenterAndExtents(Center, Size);
+
 	Children.Insert(NewObject<UQuadTree>(this), 0);
 	Children[0]->Initialize(FBox2D({Center.X, Center.Y - Size.Y}, {Center.X + Size.X, Center.Y}));
 	Children.Insert(NewObject<UQuadTree>(this), 1);
@@ -48,7 +50,6 @@ bool UQuadTree::Insert(UBodyEntity* Entity)
 	{
 		bIsSubdivided = true;
 		SubDivide();
-		//UE_LOG(LogTemp, Log, TEXT(" Node %s is subdivided"), *GetName());
 		for (UQuadTree* Child : Children)
 		{
 			if (Child->Insert(BodyEntity))
