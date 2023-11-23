@@ -83,17 +83,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "NBody Simulation")
 	float MinimumGravityDistance = 100.0f; // prevents division by zero and forces too high
 
-	UPROPERTY(EditAnywhere, Category="NBody Simulation")
-	bool bShowDebugGrid = false;
-
 	UPROPERTY(BlueprintReadOnly)
 	FBox2D SceneBounds;
-
-	UPROPERTY(BlueprintReadOnly)
-	FVector2D BottomLeftBounds;
-
-	UPROPERTY(BlueprintReadOnly)
-	FVector2D TopRightBounds;
 
 	UQuadTree* QuadTree;
 

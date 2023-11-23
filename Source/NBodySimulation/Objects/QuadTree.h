@@ -15,15 +15,16 @@ class UBodyEntity;
 class UQuadTree
 {
 public:
-	UQuadTree(): BodyEntity(nullptr), Children{}, bIsSubdivided(false) {}
+	UQuadTree(): BodyEntity(nullptr) {}
 
-
-	virtual void SubDivide();
-
+	UQuadTree(const FBox2D& InBox): BodyEntity(nullptr)
+	{
+		Box = InBox;
+	}
 
 	virtual ~UQuadTree()
 	{
-		for (int i = 0; i < 4; i++)
+		for (int i = 0; i < Children.Num(); i++)
 		{
 			if (Children[i] != nullptr)
 			{
@@ -44,10 +45,8 @@ public:
 		return false;
 	}
 
-	virtual void Initialize(const FBox2D& InBox);
-
+	virtual void SubDivide();
 	virtual bool Insert(UBodyEntity* Entity);
-
 	virtual FVector2D GetCenterOfMass();
 	virtual float GetMass();
 	virtual bool IsLeaf();

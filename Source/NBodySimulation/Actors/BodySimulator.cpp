@@ -42,7 +42,7 @@ ABodySimulator::ABodySimulator()
 void ABodySimulator::BeginPlay()
 {
 	Super::BeginPlay();
-	/* I want to calculate viewport size so I could get the exact SceneBounds I should add a code here
+	/* If I would like to calculate viewport size so I could get the exact SceneBounds I should add a code here
 	  the timer is because UE gets the wrong viewport Size at the beginning, because according to UE docs
 	we must wait until HUD is ready
 	*/
@@ -106,29 +106,20 @@ void ABodySimulator::SimulateCompareAllParallel(const float DeltaTime)
 
 void ABodySimulator::MoveAllBodies(const float DeltaTime)
 {
-	bool bErrorFound = false;
-	for (auto Body : Bodies)
+	bool bSkipBody = false;
+	for (UBodyEntity* Body : Bodies)
 	{
 		AdjustPosition(Body->Position);
 		Body->Position += Body->Velocity * DeltaTime;
-
 		Transforms[Body->Index].SetTranslation(Body->Get3DPosition());
 		if (Transforms[Body->Index].ContainsNaN())
 		{
-			UE_LOG(LogTemp, Error, TEXT("%d cntains NAN"), Body->Index);
-			bErrorFound = true;
+			bSkipBody = true;
 		}
 	}
-	if (!bErrorFound)
+	if (!bSkipBody)
 	{
-		if (Transforms[0].ContainsNaN())
-		{
-			UE_LOG(LogTemp, Error, TEXT("Transforms cntains NAN"));
-		}
-		else
-		{
-			InstancedMesh->BatchUpdateInstancesTransforms(0, Transforms, true, true);
-		}
+		InstancedMesh->BatchUpdateInstancesTransforms(0, Transforms, true, true);
 	}
 }
 
@@ -154,7 +145,7 @@ void ABodySimulator::AdjustPosition(FVector2D& InPosition) const
 	}
 }
 
-void ABodySimulator::Tick(float DeltaTime)
+void ABodySimulator::Tick(const float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
@@ -178,8 +169,7 @@ void ABodySimulator::Tick(float DeltaTime)
 void ABodySimulator::ConstructTree()
 {
 	delete QuadTree;
-	QuadTree = new UQuadTree();
-	QuadTree->Box = SceneBounds;
+	QuadTree = new UQuadTree(SceneBounds);
 
 	for (int Index = 0; Index < Bodies.Num(); ++Index)
 	{
@@ -215,12 +205,11 @@ void ABodySimulator::CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree
 	}
 	FVector2D Center, Extents;
 	Node->Box.GetCenterAndExtents(Center, Extents);
+	//I could join this but i left this apart for better visual readability
 	const float s = Extents.GetMax();
 	const float d = FVector2D::Distance(Node->GetCenterOfMass(), BodyEntity->Position);
 
-	const float Quotient = s / d;
-	//UE_LOG(LogTemp,Log,TEXT("s/d %f/%f=%f < %f θ "),s,d,Quotient,Theta);
-	if (Quotient < Theta)
+	if (const float Quotient = s / d; Quotient < Theta)
 	{
 		if (Node->GetMass() > 0)
 		{
@@ -229,7 +218,7 @@ void ABodySimulator::CalculateForcesBarnesHut(UBodyEntity* BodyEntity, UQuadTree
 
 		return;
 	}
-	for (auto Child : Node->Children)
+	for (UQuadTree* Child : Node->Children)
 	{
 		CalculateForcesBarnesHut(BodyEntity, Child, DeltaTime);
 	}

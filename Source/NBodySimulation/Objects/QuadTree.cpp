@@ -13,21 +13,11 @@ void UQuadTree::SubDivide()
 	FVector2D Size;
 	Box.GetCenterAndExtents(Center, Size);
 	Children.Reserve(4);
-	Children.Insert(new UQuadTree(), 0);
-	Children[0]->Initialize(FBox2D({Center.X, Center.Y - Size.Y}, {Center.X + Size.X, Center.Y}));
-	Children.Insert(new UQuadTree(), 1);
-	Children[1]->Initialize(FBox2D({Center.X, Center.Y}, {Center.X + Size.X, Center.Y + Size.Y}));
-	Children.Insert(new UQuadTree(), 2);
-	Children[2]->Initialize(FBox2D({Center.X - Size.X, Center.Y - Size.Y}, {Center.X, Center.Y}));
-	Children.Insert(new UQuadTree(), 3);
-	Children[3]->Initialize(FBox2D({Center.X - Size.X, Center.Y}, {Center.X, Center.Y + Size.Y}));
+	Children.Insert(new UQuadTree(FBox2D({Center.X, Center.Y - Size.Y}, {Center.X + Size.X, Center.Y})), 0);
+	Children.Insert(new UQuadTree(FBox2D({Center.X, Center.Y}, {Center.X + Size.X, Center.Y + Size.Y})), 1);
+	Children.Insert(new UQuadTree(FBox2D({Center.X - Size.X, Center.Y - Size.Y}, {Center.X, Center.Y})), 2);
+	Children.Insert(new UQuadTree(FBox2D({Center.X - Size.X, Center.Y}, {Center.X, Center.Y + Size.Y})), 3);
 }
-
-void UQuadTree::Initialize(const FBox2D& InBox)
-{
-	Box = InBox;
-}
-
 
 bool UQuadTree::Insert(UBodyEntity* Entity)
 {
